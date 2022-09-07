@@ -55,6 +55,7 @@ func (e *elizaServer) Say(
 	ctx context.Context,
 	req *connect.Request[elizav1.SayRequest],
 ) (*connect.Response[elizav1.SayResponse], error) {
+	log.Println("Server Say: ", req.Msg.Sentence)
 	reply, _ := eliza.Reply(req.Msg.Sentence) // ignore end-of-conversation detection
 	return connect.NewResponse(&elizav1.SayResponse{
 		Sentence: reply,
@@ -75,6 +76,8 @@ func (e *elizaServer) Converse(
 		} else if err != nil {
 			return fmt.Errorf("receive request: %w", err)
 		}
+
+		log.Println("Server Converse: ", request.Sentence)
 		reply, endSession := eliza.Reply(request.Sentence)
 		if err := stream.Send(&elizav1.ConverseResponse{Sentence: reply}); err != nil {
 			return fmt.Errorf("send response: %w", err)
@@ -139,6 +142,8 @@ func main() {
 		return
 	}
 
+	log.Println("Server stream delay: ", streamDelayArg)
+
 	mux := http.NewServeMux()
 	mux.Handle(
 		"/",
@@ -184,6 +189,7 @@ func main() {
 		}
 	}()
 
+	log.Println("Server listen and serve: ", addr)
 	<-signals
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -201,6 +207,8 @@ func (e *elizaServer) Introduce(
 	if name == "" {
 		name = "Anonymous User"
 	}
+
+	log.Println("Server Introduce: ", name)
 	intros := eliza.GetIntroResponses(name)
 	var ticker *time.Ticker
 	if e.streamDelay > 0 {
